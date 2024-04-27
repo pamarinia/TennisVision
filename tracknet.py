@@ -15,7 +15,7 @@ class ConvBlock(nn.Module):
     
 
 class BallTrackNet(nn.Module):
-    def __init__(self, out_channels=1):
+    def __init__(self, out_channels=256):
         super().__init__()
         self.out_channels = out_channels
 
@@ -74,6 +74,7 @@ class BallTrackNet(nn.Module):
         x = self.conv17(x)
         x = self.conv18(x)
         out = x.reshape(batch_size, self.out_channels, -1)
+        #out = self.softmax(out)
         return out
     
     def init_weights(self):
@@ -90,4 +91,4 @@ if __name__ == '__main__':
     model = BallTrackNet()
     x = torch.randn(1, 9, 360, 640)
     y = model(x)
-    print(y.size())
+    print(y.shape)

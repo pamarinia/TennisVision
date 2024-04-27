@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import cv2
+import shutil
 
 
 def gaussian_kernel(size, variance):
@@ -43,7 +44,7 @@ def create_ground_truth_images(input_path, output_path, size, variance, height, 
                         for j in range(-size, size+1):
                             if x + i >= 0 and x + i < width and y + j >= 0 and y + j < height:
                                 heatmap[y + j, x + i] = gaussian_kernel_array[j + size, i + size]
-
+                print(heatmap.shape)
                 cv2.imwrite(os.path.join(path_out_clip, file_name), heatmap)
 
 def create_ground_truth_labels(input_path, output_path, train_rate=0.7):
@@ -55,13 +56,13 @@ def create_ground_truth_labels(input_path, output_path, train_rate=0.7):
             # Load the labels
             path_labels = os.path.join(input_path, game, clip, 'Label.csv')
             labels = pd.read_csv(path_labels)
-            labels['img_path_1'] = 'images/' + game +'/' + clip + '/' + labels['file name']
+            labels['img_path_3'] = 'images/' + game +'/' + clip + '/' + labels['file name']
             labels['ground_truth_path'] = 'ground_truth/' + game +'/' + clip + '/' + labels['file name']
             
             # We startat the third image to have 3 consecutive images
             labels_target = labels[2:].copy()
-            labels_target.loc[:, 'img_path_2'] = list(labels['img_path_1'][1:-1])
-            labels_target.loc[:, 'img_path_3'] = list(labels['img_path_1'][:-2])
+            labels_target.loc[:, 'img_path_2'] = list(labels['img_path_3'][1:-1])
+            labels_target.loc[:, 'img_path_1'] = list(labels['img_path_3'][:-2])
             df = pd.concat([df, labels_target])
     
     df = df.reset_index(drop=True)
@@ -74,3 +75,24 @@ def create_ground_truth_labels(input_path, output_path, train_rate=0.7):
     df_test = df[num_train:]
     df_train.to_csv(os.path.join(output_path, 'labels_train.csv'), index=False)
     df_test.to_csv(os.path.join(output_path, 'labels_test.csv'), index=False)
+
+
+
+def move_images(imgs_path, output_path):
+    output_path_imgs = os.path.join(output_path, 'images')
+    if not os.path.exists(output_path_imgs):
+        os.makedirs(output_path_imgs)
+    for game_id in range(1, 11):
+        game = 'game{}'.format(game_id)
+        src_dir_imgs = os.path.join(imgs_path, game)
+        dst_dir_imgs = os.path.join(output_path_imgs, game)
+        if not os.path.exists(dst_dir_imgs):
+            shutil.copytree(src_dir_imgs, dst_dir_imgs)
+
+# Maybe add function to remove Label.csv files
+
+
+if __name__ == '__main__':
+    create_ground_truth_images('datasets/Dataset', 'datasets/TrackNet/ground_truth', 20, 10, 720, 1280)
+    create_ground_truth_labels('datasets/Dataset', 'datasets/TrackNet')
+    move_images('datasets/Dataset', 'datasets/TrackNet')
